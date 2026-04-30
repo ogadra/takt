@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockRunAgent } = vi.hoisted(() => ({
   mockRunAgent: vi.fn(),
@@ -554,6 +554,250 @@ describe('PromptBasedStructuredCaller', () => {
       ],
       { cwd: '/tmp/project', stepName: 'review', provider: 'cursor' },
     )).rejects.toThrow('Structured response parsing failed');
+  });
+
+  describe('decomposeTask retry', () => {
+    beforeEach(() => {
+      vi.resetAllMocks();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const successContent = [
+      '```json',
+      JSON.stringify([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]),
+      '```',
+    ].join('\n');
+
+    const successResponse = {
+      persona: 'leader' as const,
+      status: 'done' as const,
+      content: successContent,
+      timestamp: new Date(),
+    };
+
+    it('should succeed on second attempt when first attempt returns error status', async () => {
+      // Given: first call returns error status, second call returns success
+      mockRunAgent
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'error',
+          content: 'LLM transient error',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce(successResponse);
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      // Then: returns parsed parts from second attempt
+      expect(result).toEqual([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]);
+      expect(mockRunAgent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should succeed on second attempt when first attempt has no JSON block', async () => {
+      // Given: first call returns done status but no JSON block (parseParts throws)
+      mockRunAgent
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'done',
+          content: 'Here is the decomposition plan (but no json block)',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce(successResponse);
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      // Then: returns parsed parts from second attempt
+      expect(result).toEqual([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]);
+      expect(mockRunAgent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should succeed on second attempt when first attempt has malformed JSON', async () => {
+      // Given: first call returns done status but malformed JSON (parseParts throws)
+      mockRunAgent
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'done',
+          content: '```json\n{not valid json}\n```',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce(successResponse);
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      // Then: returns parsed parts from second attempt
+      expect(result).toEqual([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]);
+      expect(mockRunAgent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw after all 3 attempts fail with error status', async () => {
+      // Given: all 3 attempts return error status
+      mockRunAgent.mockResolvedValue({
+        persona: 'leader',
+        status: 'error',
+        content: 'persistent LLM error',
+        timestamp: new Date(),
+      });
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called — run timers and await rejection
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+
+      await expect(promise).rejects.toThrow('Team leader failed after 3 attempts: persistent LLM error');
+      expect(mockRunAgent).toHaveBeenCalledTimes(3);
+    });
+
+    it('should throw after all 3 attempts fail with parse error', async () => {
+      // Given: all 3 attempts return done but without valid JSON block
+      mockRunAgent.mockResolvedValue({
+        persona: 'leader',
+        status: 'done',
+        content: 'no json block at all',
+        timestamp: new Date(),
+      });
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called — run timers and await rejection
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+
+      await expect(promise).rejects.toThrow('Team leader failed after 3 attempts');
+      expect(mockRunAgent).toHaveBeenCalledTimes(3);
+    });
+
+    it('should succeed on first attempt without any retry (no extra runAgent calls)', async () => {
+      // Given: first call succeeds
+      mockRunAgent.mockResolvedValueOnce(successResponse);
+
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called
+      const result = await caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+
+      // Then: returns parsed parts and runAgent was called exactly once
+      expect(result).toEqual([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]);
+      expect(mockRunAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should wait DECOMPOSE_RETRY_DELAY_MS (1000ms) between attempts', async () => {
+      // Given: first call returns error status, second call succeeds
+      mockRunAgent
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'error',
+          content: 'LLM transient error',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce(successResponse);
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+
+      // Then: before delay passes, only 1 call has been made
+      await vi.advanceTimersByTimeAsync(999);
+      expect(mockRunAgent).toHaveBeenCalledTimes(1);
+
+      // After delay passes, second call is made
+      await vi.advanceTimersByTimeAsync(1);
+      const result = await promise;
+
+      expect(result).toEqual([{ id: 'p1', title: 'First task', instruction: 'Do the first thing' }]);
+      expect(mockRunAgent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should include the last error message in the final throw', async () => {
+      // Given: all attempts fail with distinct error messages
+      mockRunAgent
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'error',
+          content: 'first error',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'error',
+          content: 'second error',
+          timestamp: new Date(),
+        })
+        .mockResolvedValueOnce({
+          persona: 'leader',
+          status: 'error',
+          content: 'last error message',
+          timestamp: new Date(),
+        });
+
+      vi.useFakeTimers();
+      const caller = new PromptBasedStructuredCaller();
+
+      // When: decomposeTask is called — run timers and await rejection
+      const promise = caller.decomposeTask('break down the work', 3, {
+        cwd: '/tmp/project',
+        provider: 'cursor',
+        persona: 'team-leader',
+      });
+      await vi.runAllTimersAsync();
+
+      // Then: the error message contains the last failure detail
+      await expect(promise).rejects.toThrow('last error message');
+      expect(mockRunAgent).toHaveBeenCalledTimes(3);
+    });
   });
 });
 

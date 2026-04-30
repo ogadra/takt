@@ -1,13 +1,12 @@
 import type { PartDefinition } from '../../models/part.js';
 import { ensureUniquePartIds, parsePartDefinitionEntry } from '../part-definition-validator.js';
 
-const JSON_CODE_BLOCK_REGEX = /```json\s*([\s\S]*?)```/g;
-
 function parseJsonBlock(content: string): unknown {
+  const jsonCodeBlockRegex = /```json\s*([\s\S]*?)```/g;
   let lastJsonBlock: string | undefined;
   let match: RegExpExecArray | null;
 
-  while ((match = JSON_CODE_BLOCK_REGEX.exec(content)) !== null) {
+  while ((match = jsonCodeBlockRegex.exec(content)) !== null) {
     if (match[1]) {
       lastJsonBlock = match[1].trim();
     }
