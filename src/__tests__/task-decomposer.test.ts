@@ -84,4 +84,40 @@ describe('parseParts', () => {
       'Part[0] "timeout_ms" is not supported; use team_leader.timeout_ms instead',
     );
   });
+
+  describe('ステートレス正規表現の確認', () => {
+    it('parseParts を連続で2回呼び出しても正しく動作する', () => {
+      // Given: valid JSON block content
+      const content = '```json\n[{"id":"a","title":"A","instruction":"Do A"}]\n```';
+
+      // When: parseParts is called twice in succession
+      const result1 = parseParts(content, 3);
+      const result2 = parseParts(content, 3);
+
+      // Then: both calls return the same result
+      expect(result1).toEqual(result2);
+      expect(result1).toEqual([{ id: 'a', title: 'A', instruction: 'Do A' }]);
+    });
+
+    it('複数のJSONブロックがある場合に連続呼び出しでも最後のブロックを返す', () => {
+      // Given: content with multiple JSON blocks
+      const content = [
+        '```json',
+        '[{"id":"old","title":"Old","instruction":"Old"}]',
+        '```',
+        '最終案',
+        '```json',
+        '[{"id":"a","title":"A","instruction":"Do A"}]',
+        '```',
+      ].join('\n');
+
+      // When: parseParts is called twice in succession
+      const result1 = parseParts(content, 3);
+      const result2 = parseParts(content, 3);
+
+      // Then: both calls return the last JSON block
+      expect(result1).toEqual([{ id: 'a', title: 'A', instruction: 'Do A' }]);
+      expect(result2).toEqual([{ id: 'a', title: 'A', instruction: 'Do A' }]);
+    });
+  });
 });

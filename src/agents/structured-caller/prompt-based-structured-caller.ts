@@ -23,6 +23,9 @@ import {
 } from './shared.js';
 import { parseParts } from '../../core/workflow/engine/task-decomposer.js';
 
+const DECOMPOSE_MAX_RETRIES = 2;
+const DECOMPOSE_RETRY_DELAY_MS = 1000;
+
 export class PromptBasedStructuredCaller implements StructuredCaller {
   async judgeStatus(
     structuredInstruction: string,
@@ -161,28 +164,43 @@ export class PromptBasedStructuredCaller implements StructuredCaller {
     options: DecomposeTaskOptions,
   ): Promise<PartDefinition[]> {
     const prompt = buildPromptBasedDecomposePrompt(instruction, maxParts, options.language);
-    const response = await runAgent(options.persona, prompt, {
-      cwd: options.cwd,
-      personaPath: options.personaPath,
-      language: options.language,
-      model: options.model,
-      provider: options.provider,
-      resolvedModel: options.resolvedModel,
-      resolvedProvider: options.resolvedProvider,
-      allowedTools: [],
-      permissionMode: 'readonly',
-      maxTurns: TEAM_LEADER_MAX_TURNS,
-      onStream: options.onStream,
-      workflowMeta: options.workflowMeta,
-      onPromptResolved: options.onPromptResolved,
-    });
+    const totalAttempts = DECOMPOSE_MAX_RETRIES + 1;
+    let lastErrorDetail = '';
 
-    if (response.status !== 'done') {
-      const detail = response.error || response.content || response.status;
-      throw new Error(`Team leader failed: ${detail}`);
+    for (let attempt = 0; attempt < totalAttempts; attempt++) {
+      if (attempt > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, DECOMPOSE_RETRY_DELAY_MS));
+      }
+
+      const response = await runAgent(options.persona, prompt, {
+        cwd: options.cwd,
+        personaPath: options.personaPath,
+        language: options.language,
+        model: options.model,
+        provider: options.provider,
+        resolvedModel: options.resolvedModel,
+        resolvedProvider: options.resolvedProvider,
+        allowedTools: [],
+        permissionMode: 'readonly',
+        maxTurns: TEAM_LEADER_MAX_TURNS,
+        onStream: options.onStream,
+        workflowMeta: options.workflowMeta,
+        onPromptResolved: options.onPromptResolved,
+      });
+
+      if (response.status !== 'done') {
+        lastErrorDetail = response.error || response.content || response.status;
+        continue;
+      }
+
+      try {
+        return parseParts(response.content, maxParts);
+      } catch (error) {
+        lastErrorDetail = error instanceof Error ? error.message : String(error);
+      }
     }
 
-    return parseParts(response.content, maxParts);
+    throw new Error(`Team leader failed after ${totalAttempts} attempts: ${lastErrorDetail}`);
   }
 
   async requestMoreParts(
