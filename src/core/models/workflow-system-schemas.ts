@@ -114,6 +114,7 @@ const EnqueueTaskEffectBaseSchema = z.object({
   task: z.string().min(1),
   pr: EffectReferenceScalarSchema.optional(),
   issue: z.union([EnqueueIssueRawSchema, TemplateReferenceSchema]).optional(),
+  branch: z.string().min(1).optional(),
   base_branch: z.string().min(1).optional(),
   worktree: EnqueueWorktreeRawSchema.optional(),
 }).strict();
