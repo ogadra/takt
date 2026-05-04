@@ -667,6 +667,33 @@ describe('system workflow schema', () => {
     );
   });
 
+  it('enqueue_task mode "new" で branch を worktree なしで指定すると reject する', () => {
+    const result = WorkflowStepRawSchema.safeParse({
+      name: 'enqueue_part1',
+      mode: 'system',
+      effects: [
+        {
+          type: 'enqueue_task',
+          mode: 'new',
+          workflow: 'default',
+          task: 'Implement part 1',
+          branch: 'feat/my-feature-part1',
+        },
+      ],
+      rules: [{ when: 'true', next: 'COMPLETE' }],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ['effects', 0, 'branch'],
+          message: 'enqueue_task "branch" requires "worktree.enabled: true"',
+        }),
+      ]),
+    );
+  });
+
   it('enqueue_task の branch フィールドが正規化を通って保持される', () => {
     const workflowDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-branch-'));
     try {
@@ -686,6 +713,7 @@ describe('system workflow schema', () => {
                 task: 'Implement part 1',
                 branch: 'feat/my-feature-part1',
                 base_branch: 'main',
+                worktree: { enabled: true },
               },
             ],
             rules: [{ when: 'true', next: 'COMPLETE' }],

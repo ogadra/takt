@@ -2001,6 +2001,27 @@ describe('DefaultSystemStepServices', () => {
     }, {} as never)).rejects.toThrow('System effect mode "from_pr" does not allow field "branch"');
   });
 
+  it('rejects new enqueue_task payloads that include branch without worktree.enabled at the effect boundary', async () => {
+    const services = new DefaultSystemStepServices({
+      cwd: '/repo/worktree',
+      projectCwd: '/repo',
+      task: 'Plan stacked PR',
+    });
+
+    await expect(services.executeEffect({
+      type: 'enqueue_task',
+      mode: 'new',
+      workflow: 'default',
+      task: '{structured:plan.task}',
+      branch: 'feat/my-feature-part1',
+    }, {
+      mode: 'new',
+      workflow: 'default',
+      task: 'Implement part 1',
+      branch: 'feat/my-feature-part1',
+    }, {} as never)).rejects.toThrow('System effect "branch" requires "worktree.enabled: true"');
+  });
+
   it('treats non-conflict merge failures as failed sync_with_root effects', async () => {
     mockFetchPrReviewComments.mockReturnValue({
       number: 42,

@@ -156,6 +156,13 @@ export const WorkflowEffectRawSchema = z.discriminatedUnion('type', [
         message: 'enqueue_task mode "from_pr" does not allow "branch"',
       });
     }
+    if (data.mode === 'new' && data.branch !== undefined && data.worktree?.enabled !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['branch'],
+        message: 'enqueue_task "branch" requires "worktree.enabled: true"',
+      });
+    }
   }),
   z.object({
     type: z.literal('comment_pr'),

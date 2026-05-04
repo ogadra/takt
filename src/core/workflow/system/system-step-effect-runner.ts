@@ -84,6 +84,9 @@ export function validateSystemEffectPayload(
     if (payload.mode === 'new' && payload.pr !== undefined) {
       throw new Error('System effect mode "new" does not allow field "pr"');
     }
+    if (payload.mode === 'new' && payload.branch !== undefined && payload.worktree?.enabled !== true) {
+      throw new Error('System effect "branch" requires "worktree.enabled: true"');
+    }
     if (payload.mode === 'from_pr') {
       if (payload.pr === undefined) {
         throw new Error('System effect mode "from_pr" requires field "pr"');
