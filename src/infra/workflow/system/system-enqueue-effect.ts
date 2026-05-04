@@ -52,13 +52,7 @@ export async function enqueueTaskEffect(
       ...(payload.worktree?.draft_pr === true ? { draftPr: true } : {}),
       ...(payload.worktree?.managed_pr === true ? { managedPr: true } : {}),
     });
-    return {
-      success: true,
-      failed: false,
-      ...created,
-      ...(payload.branch ? { branch: payload.branch } : {}),
-      ...(issueNumber !== undefined ? { issueNumber } : {}),
-    };
+    return { success: true, failed: false, ...created, ...(issueNumber !== undefined ? { issueNumber } : {}) };
   }
 
   if (payload.pr == null) {
