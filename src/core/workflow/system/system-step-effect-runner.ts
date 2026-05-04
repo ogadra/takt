@@ -77,6 +77,7 @@ export function validateSystemEffectPayload(
     if (payload.workflow !== undefined) requireString(payload.workflow, 'workflow');
     if (payload.task !== undefined) requireString(payload.task, 'task');
     if (payload.pr !== undefined) requireNumber(payload.pr, 'pr');
+    if (payload.branch !== undefined) requireString(payload.branch, 'branch');
     if (payload.base_branch !== undefined) requireString(payload.base_branch, 'base_branch');
     if (payload.issue !== undefined) validateIssuePayload(payload.issue);
     if (payload.worktree !== undefined) validateWorktreePayload(payload.worktree);
@@ -92,6 +93,9 @@ export function validateSystemEffectPayload(
       }
       if (payload.worktree !== undefined) {
         throw new Error('System effect mode "from_pr" does not allow field "worktree"');
+      }
+      if (payload.branch !== undefined) {
+        throw new Error('System effect mode "from_pr" does not allow field "branch"');
       }
     }
   }
