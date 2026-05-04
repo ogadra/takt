@@ -633,6 +633,7 @@ describe('system workflow schema', () => {
           pr: 42,
           issue: { create: true },
           worktree: { enabled: true },
+          branch: 'feat/override',
         },
       ],
       rules: [{ when: 'true', next: 'COMPLETE' }],
@@ -658,8 +659,81 @@ describe('system workflow schema', () => {
           path: ['effects', 0, 'worktree'],
           message: 'enqueue_task mode "from_pr" does not allow "worktree"',
         }),
+        expect.objectContaining({
+          path: ['effects', 0, 'branch'],
+          message: 'enqueue_task mode "from_pr" does not allow "branch"',
+        }),
       ]),
     );
+  });
+
+  it('enqueue_task mode "new" で branch を worktree なしで指定すると reject する', () => {
+    const result = WorkflowStepRawSchema.safeParse({
+      name: 'enqueue_part1',
+      mode: 'system',
+      effects: [
+        {
+          type: 'enqueue_task',
+          mode: 'new',
+          workflow: 'default',
+          task: 'Implement part 1',
+          branch: 'feat/my-feature-part1',
+        },
+      ],
+      rules: [{ when: 'true', next: 'COMPLETE' }],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ['effects', 0, 'branch'],
+          message: 'enqueue_task "branch" requires "worktree.enabled: true"',
+        }),
+      ]),
+    );
+  });
+
+  it('enqueue_task の branch フィールドが正規化を通って保持される', () => {
+    const workflowDir = mkdtempSync(join(tmpdir(), 'takt-system-schema-branch-'));
+    try {
+      const raw = WorkflowConfigRawSchema.parse({
+        name: 'stacked-pr',
+        max_steps: 3,
+        initial_step: 'enqueue_part1',
+        steps: [
+          {
+            name: 'enqueue_part1',
+            mode: 'system',
+            effects: [
+              {
+                type: 'enqueue_task',
+                mode: 'new',
+                workflow: 'default',
+                task: 'Implement part 1',
+                branch: 'feat/my-feature-part1',
+                base_branch: 'main',
+                worktree: { enabled: true },
+              },
+            ],
+            rules: [{ when: 'true', next: 'COMPLETE' }],
+          },
+        ],
+      });
+
+      const normalized = normalizeWorkflowConfig(raw, workflowDir);
+      const step = normalized.steps[0] as Record<string, unknown>;
+      const effects = step.effects as Array<Record<string, unknown>>;
+
+      expect(effects[0]).toMatchObject({
+        type: 'enqueue_task',
+        mode: 'new',
+        branch: 'feat/my-feature-part1',
+        base_branch: 'main',
+      });
+    } finally {
+      rmSync(workflowDir, { recursive: true, force: true });
+    }
   });
 
   it('system_inputs または effects を持つ step では kind: system を必須にする', () => {

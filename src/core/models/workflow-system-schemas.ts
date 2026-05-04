@@ -114,6 +114,7 @@ const EnqueueTaskEffectBaseSchema = z.object({
   task: z.string().min(1),
   pr: EffectReferenceScalarSchema.optional(),
   issue: z.union([EnqueueIssueRawSchema, TemplateReferenceSchema]).optional(),
+  branch: z.string().min(1).optional(),
   base_branch: z.string().min(1).optional(),
   worktree: EnqueueWorktreeRawSchema.optional(),
 }).strict();
@@ -146,6 +147,20 @@ export const WorkflowEffectRawSchema = z.discriminatedUnion('type', [
         code: z.ZodIssueCode.custom,
         path: ['worktree'],
         message: 'enqueue_task mode "from_pr" does not allow "worktree"',
+      });
+    }
+    if (data.mode === 'from_pr' && data.branch !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['branch'],
+        message: 'enqueue_task mode "from_pr" does not allow "branch"',
+      });
+    }
+    if (data.mode === 'new' && data.branch !== undefined && data.worktree?.enabled !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['branch'],
+        message: 'enqueue_task "branch" requires "worktree.enabled: true"',
       });
     }
   }),

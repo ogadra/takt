@@ -24,6 +24,7 @@ export async function enqueueTaskEffect(
     task: string;
     pr?: number;
     issue?: WorkflowEnqueueIssueConfig;
+    branch?: string;
     base_branch?: string;
     worktree?: WorkflowEnqueueWorktreeConfig;
   },
@@ -45,6 +46,7 @@ export async function enqueueTaskEffect(
       workflow: payload.workflow,
       ...(issueNumber !== undefined ? { issue: issueNumber } : {}),
       ...(payload.worktree?.enabled === true ? { worktree: true } : {}),
+      ...(payload.branch ? { branch: payload.branch } : {}),
       ...(baseBranch ? { baseBranch } : {}),
       ...(payload.worktree?.auto_pr === true ? { autoPr: true } : {}),
       ...(payload.worktree?.draft_pr === true ? { draftPr: true } : {}),

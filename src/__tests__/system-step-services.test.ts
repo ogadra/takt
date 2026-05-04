@@ -1938,6 +1938,90 @@ describe('DefaultSystemStepServices', () => {
     }, {} as never)).rejects.toThrow('System effect mode "from_pr" does not allow field "issue"');
   });
 
+  it('passes branch to saveTaskFile for enqueue_task mode new', async () => {
+    const services = new DefaultSystemStepServices({
+      cwd: '/repo/worktree',
+      projectCwd: '/repo',
+      task: 'Plan stacked PR',
+    });
+
+    const result = await services.executeEffect({
+      type: 'enqueue_task',
+      mode: 'new',
+      workflow: 'default',
+      task: '{structured:plan.task}',
+      branch: 'feat/my-feature-part1',
+      base_branch: 'main',
+      worktree: { enabled: true, auto_pr: true, draft_pr: true },
+    }, {
+      mode: 'new',
+      workflow: 'default',
+      task: 'Implement part 1',
+      branch: 'feat/my-feature-part1',
+      base_branch: 'main',
+      worktree: { enabled: true, auto_pr: true, draft_pr: true },
+    }, {} as never);
+
+    expect(mockSaveTaskFile).toHaveBeenCalledWith('/repo', 'Implement part 1', {
+      workflow: 'default',
+      worktree: true,
+      branch: 'feat/my-feature-part1',
+      baseBranch: 'main',
+      autoPr: true,
+      draftPr: true,
+    });
+    expect(result).toEqual({
+      success: true,
+      failed: false,
+      taskName: 'task-1',
+      tasksFile: '/repo/.takt/tasks.yaml',
+    });
+  });
+
+  it('rejects from_pr enqueue_task payloads that include branch at the effect boundary', async () => {
+    const services = new DefaultSystemStepServices({
+      cwd: '/repo/worktree',
+      projectCwd: '/repo',
+      task: 'Plan follow-up',
+    });
+
+    await expect(services.executeEffect({
+      type: 'enqueue_task',
+      mode: 'from_pr',
+      workflow: 'takt-default',
+      task: '{structured:plan.task_markdown}',
+      pr: '{context:route.pr.number}',
+      branch: 'feat/override',
+    }, {
+      mode: 'from_pr',
+      workflow: 'takt-default',
+      task: 'Address review comments',
+      pr: 42,
+      branch: 'feat/override',
+    }, {} as never)).rejects.toThrow('System effect mode "from_pr" does not allow field "branch"');
+  });
+
+  it('rejects new enqueue_task payloads that include branch without worktree.enabled at the effect boundary', async () => {
+    const services = new DefaultSystemStepServices({
+      cwd: '/repo/worktree',
+      projectCwd: '/repo',
+      task: 'Plan stacked PR',
+    });
+
+    await expect(services.executeEffect({
+      type: 'enqueue_task',
+      mode: 'new',
+      workflow: 'default',
+      task: '{structured:plan.task}',
+      branch: 'feat/my-feature-part1',
+    }, {
+      mode: 'new',
+      workflow: 'default',
+      task: 'Implement part 1',
+      branch: 'feat/my-feature-part1',
+    }, {} as never)).rejects.toThrow('System effect "branch" requires "worktree.enabled: true"');
+  });
+
   it('treats non-conflict merge failures as failed sync_with_root effects', async () => {
     mockFetchPrReviewComments.mockReturnValue({
       number: 42,
