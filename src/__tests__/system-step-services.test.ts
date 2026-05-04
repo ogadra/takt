@@ -1975,7 +1975,6 @@ describe('DefaultSystemStepServices', () => {
       failed: false,
       taskName: 'task-1',
       tasksFile: '/repo/.takt/tasks.yaml',
-      branch: 'feat/my-feature-part1',
     });
   });
 
