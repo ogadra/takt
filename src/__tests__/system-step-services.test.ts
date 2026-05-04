@@ -1938,7 +1938,7 @@ describe('DefaultSystemStepServices', () => {
     }, {} as never)).rejects.toThrow('System effect mode "from_pr" does not allow field "issue"');
   });
 
-  it('passes branch to saveTaskFile and returns it in result for enqueue_task mode new', async () => {
+  it('passes branch to saveTaskFile for enqueue_task mode new', async () => {
     const services = new DefaultSystemStepServices({
       cwd: '/repo/worktree',
       projectCwd: '/repo',
