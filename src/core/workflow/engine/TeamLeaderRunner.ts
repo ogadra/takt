@@ -103,6 +103,7 @@ export class TeamLeaderRunner {
       workflowMeta: leaderWorkflowMeta,
       onStream: this.deps.engineOptions.onStream,
       onPromptResolved: (promptParts) => {
+        if (didEmitPhaseStart) return;
         this.deps.onPhaseStart?.(leaderStep, 1, 'execute', promptParts.userInstruction, promptParts, undefined, parentIteration);
         didEmitPhaseStart = true;
       },
