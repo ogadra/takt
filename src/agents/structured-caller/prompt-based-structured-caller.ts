@@ -24,6 +24,9 @@ import {
 import { parseParts } from '../../core/workflow/engine/task-decomposer.js';
 import { delay } from '../../shared/utils/index.js';
 
+const RETRY_MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1000;
+
 export class PromptBasedStructuredCaller implements StructuredCaller {
   async judgeStatus(
     structuredInstruction: string,
@@ -229,9 +232,6 @@ export class PromptBasedStructuredCaller implements StructuredCaller {
     });
   }
 }
-
-const RETRY_MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 1000;
 
 async function withRetry<T>(runOnce: () => Promise<T>): Promise<T> {
   let lastError: unknown;
