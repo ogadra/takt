@@ -9,6 +9,7 @@ vi.mock('../agents/runner.js', () => ({
 }));
 
 import { PromptBasedStructuredCaller } from '../agents/structured-caller.js';
+import { RETRY_DELAY_MS } from '../agents/structured-caller/prompt-based-structured-caller.js';
 import { resolveStructuredStep } from '../agents/structured-caller/shared.js';
 
 describe('PromptBasedStructuredCaller', () => {
@@ -231,7 +232,7 @@ describe('PromptBasedStructuredCaller', () => {
       provider: 'cursor',
       persona: 'team-leader',
     });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -267,7 +268,7 @@ describe('PromptBasedStructuredCaller', () => {
       provider: 'cursor',
       persona: 'team-leader',
     });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -295,7 +296,7 @@ describe('PromptBasedStructuredCaller', () => {
       persona: 'team-leader',
     });
     const assertion = expect(promise).rejects.toThrow(/```json \.\.\. ``` block/);
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     await assertion;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
@@ -329,7 +330,7 @@ describe('PromptBasedStructuredCaller', () => {
       provider: 'cursor',
       persona: 'team-leader',
     });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -358,7 +359,7 @@ describe('PromptBasedStructuredCaller', () => {
       persona: 'team-leader',
     });
     const assertion = expect(promise).rejects.toThrow(/Team leader failed: provider blew up/);
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     await assertion;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
@@ -393,7 +394,7 @@ describe('PromptBasedStructuredCaller', () => {
       provider: 'cursor',
       persona: 'team-leader',
     });
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
@@ -563,7 +564,7 @@ describe('PromptBasedStructuredCaller', () => {
       2,
       { cwd: '/tmp/project', provider: 'cursor' },
     );
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -611,7 +612,7 @@ describe('PromptBasedStructuredCaller', () => {
       2,
       { cwd: '/tmp/project', provider: 'cursor' },
     );
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -643,7 +644,7 @@ describe('PromptBasedStructuredCaller', () => {
       { cwd: '/tmp/project', provider: 'cursor' },
     );
     const assertion = expect(promise).rejects.toThrow(/```json \.\.\. ``` block/);
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     await assertion;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
@@ -677,7 +678,7 @@ describe('PromptBasedStructuredCaller', () => {
       2,
       { cwd: '/tmp/project', provider: 'cursor' },
     );
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(2);
@@ -706,7 +707,7 @@ describe('PromptBasedStructuredCaller', () => {
       { cwd: '/tmp/project', provider: 'cursor' },
     );
     const assertion = expect(promise).rejects.toThrow(/Team leader feedback failed: provider blew up/);
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     await assertion;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
@@ -741,7 +742,7 @@ describe('PromptBasedStructuredCaller', () => {
       2,
       { cwd: '/tmp/project', provider: 'cursor' },
     );
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
     const result = await promise;
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);

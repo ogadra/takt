@@ -26,8 +26,8 @@ import { createLogger, delay, getErrorMessage } from '../../shared/utils/index.j
 
 const log = createLogger('prompt-based-structured-caller');
 
-const RETRY_MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 1000;
+export const RETRY_MAX_ATTEMPTS = 3;
+export const RETRY_DELAY_MS = 1000;
 
 export class PromptBasedStructuredCaller implements StructuredCaller {
   async judgeStatus(
