@@ -161,28 +161,31 @@ export class PromptBasedStructuredCaller implements StructuredCaller {
     options: DecomposeTaskOptions,
   ): Promise<PartDefinition[]> {
     const prompt = buildPromptBasedDecomposePrompt(instruction, maxParts, options.language);
-    const response = await runAgent(options.persona, prompt, {
-      cwd: options.cwd,
-      personaPath: options.personaPath,
-      language: options.language,
-      model: options.model,
-      provider: options.provider,
-      resolvedModel: options.resolvedModel,
-      resolvedProvider: options.resolvedProvider,
-      allowedTools: [],
-      permissionMode: 'readonly',
-      maxTurns: TEAM_LEADER_MAX_TURNS,
-      onStream: options.onStream,
-      workflowMeta: options.workflowMeta,
-      onPromptResolved: options.onPromptResolved,
+
+    return withRetry(async () => {
+      const response = await runAgent(options.persona, prompt, {
+        cwd: options.cwd,
+        personaPath: options.personaPath,
+        language: options.language,
+        model: options.model,
+        provider: options.provider,
+        resolvedModel: options.resolvedModel,
+        resolvedProvider: options.resolvedProvider,
+        allowedTools: [],
+        permissionMode: 'readonly',
+        maxTurns: TEAM_LEADER_MAX_TURNS,
+        onStream: options.onStream,
+        workflowMeta: options.workflowMeta,
+        onPromptResolved: options.onPromptResolved,
+      });
+
+      if (response.status !== 'done') {
+        const detail = response.error || response.content || response.status;
+        throw new Error(`Team leader failed: ${detail}`);
+      }
+
+      return parseParts(response.content, maxParts);
     });
-
-    if (response.status !== 'done') {
-      const detail = response.error || response.content || response.status;
-      throw new Error(`Team leader failed: ${detail}`);
-    }
-
-    return parseParts(response.content, maxParts);
   }
 
   async requestMoreParts(
@@ -199,26 +202,51 @@ export class PromptBasedStructuredCaller implements StructuredCaller {
       maxAdditionalParts,
       options.language,
     );
-    const response = await runAgent(options.persona, prompt, {
-      cwd: options.cwd,
-      personaPath: options.personaPath,
-      language: options.language,
-      model: options.model,
-      provider: options.provider,
-      resolvedModel: options.resolvedModel,
-      resolvedProvider: options.resolvedProvider,
-      allowedTools: [],
-      permissionMode: 'readonly',
-      maxTurns: TEAM_LEADER_MAX_TURNS,
-      onStream: options.onStream,
-      workflowMeta: options.workflowMeta,
+
+    return withRetry(async () => {
+      const response = await runAgent(options.persona, prompt, {
+        cwd: options.cwd,
+        personaPath: options.personaPath,
+        language: options.language,
+        model: options.model,
+        provider: options.provider,
+        resolvedModel: options.resolvedModel,
+        resolvedProvider: options.resolvedProvider,
+        allowedTools: [],
+        permissionMode: 'readonly',
+        maxTurns: TEAM_LEADER_MAX_TURNS,
+        onStream: options.onStream,
+        workflowMeta: options.workflowMeta,
+      });
+
+      if (response.status !== 'done') {
+        const detail = response.error || response.content || response.status;
+        throw new Error(`Team leader feedback failed: ${detail}`);
+      }
+
+      return toMorePartsResponse(parseLastJsonBlock(response.content), maxAdditionalParts);
     });
-
-    if (response.status !== 'done') {
-      const detail = response.error || response.content || response.status;
-      throw new Error(`Team leader feedback failed: ${detail}`);
-    }
-
-    return toMorePartsResponse(parseLastJsonBlock(response.content), maxAdditionalParts);
   }
+}
+
+const RETRY_MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(runOnce: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await runOnce();
+    } catch (error) {
+      lastError = error;
+      if (attempt < RETRY_MAX_ATTEMPTS) {
+        await delay(RETRY_DELAY_MS);
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
