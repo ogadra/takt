@@ -459,41 +459,6 @@ describe('PromptBasedStructuredCaller', () => {
     );
   });
 
-  it('should log two retry attempts when decomposeTask fails three times', async () => {
-    const failingResponse = {
-      persona: 'leader',
-      status: 'done',
-      content: 'never any json',
-      timestamp: new Date(),
-    };
-    mockRunAgent
-      .mockResolvedValueOnce(failingResponse)
-      .mockResolvedValueOnce(failingResponse)
-      .mockResolvedValueOnce(failingResponse);
-
-    const caller = new PromptBasedStructuredCaller();
-    const promise = caller.decomposeTask('break down the work', 3, {
-      cwd: '/tmp/project',
-      provider: 'cursor',
-      persona: 'team-leader',
-    });
-    const assertion = expect(promise).rejects.toThrow(/```json \.\.\. ``` block/);
-    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
-    await assertion;
-
-    expect(infoMock).toHaveBeenCalledTimes(2);
-    expect(infoMock).toHaveBeenNthCalledWith(
-      1,
-      'Structured call failed, retrying',
-      expect.objectContaining({ attempt: 1, maxAttempts: 3 }),
-    );
-    expect(infoMock).toHaveBeenNthCalledWith(
-      2,
-      'Structured call failed, retrying',
-      expect.objectContaining({ attempt: 2, maxAttempts: 3 }),
-    );
-  });
-
   it('should parse additional parts from fenced JSON without outputSchema', async () => {
     mockRunAgent.mockResolvedValue({
       persona: 'leader',
@@ -838,6 +803,43 @@ describe('PromptBasedStructuredCaller', () => {
 
     expect(mockRunAgent).toHaveBeenCalledTimes(3);
     expect(result).toEqual({ done: true, reasoning: 'late ok', parts: [] });
+  });
+
+  it('should log two retry attempts when requestMoreParts fails three times', async () => {
+    const failingResponse = {
+      persona: 'leader',
+      status: 'done',
+      content: 'never any json',
+      timestamp: new Date(),
+    };
+    mockRunAgent
+      .mockResolvedValueOnce(failingResponse)
+      .mockResolvedValueOnce(failingResponse)
+      .mockResolvedValueOnce(failingResponse);
+
+    const caller = new PromptBasedStructuredCaller();
+    const promise = caller.requestMoreParts(
+      'original task',
+      [{ id: 'p1', title: 'First', status: 'done', content: 'done' }],
+      ['p1'],
+      2,
+      { cwd: '/tmp/project', provider: 'cursor' },
+    );
+    const assertion = expect(promise).rejects.toThrow(/```json \.\.\. ``` block/);
+    await vi.advanceTimersByTimeAsync(RETRY_DELAY_MS * 2);
+    await assertion;
+
+    expect(infoMock).toHaveBeenCalledTimes(2);
+    expect(infoMock).toHaveBeenNthCalledWith(
+      1,
+      'Structured call failed, retrying',
+      expect.objectContaining({ attempt: 1, maxAttempts: 3 }),
+    );
+    expect(infoMock).toHaveBeenNthCalledWith(
+      2,
+      'Structured call failed, retrying',
+      expect.objectContaining({ attempt: 2, maxAttempts: 3 }),
+    );
   });
 
   it('should return auto_select without calling agent when only one rule exists', async () => {
