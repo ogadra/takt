@@ -22,7 +22,9 @@ import {
   resolveStructuredStep,
 } from './shared.js';
 import { parseParts } from '../../core/workflow/engine/task-decomposer.js';
-import { delay } from '../../shared/utils/index.js';
+import { createLogger, delay } from '../../shared/utils/index.js';
+
+const log = createLogger('prompt-based-structured-caller');
 
 const RETRY_MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
@@ -241,6 +243,11 @@ async function withRetry<T>(runOnce: () => Promise<T>): Promise<T> {
     } catch (error) {
       lastError = error;
       if (attempt < RETRY_MAX_ATTEMPTS) {
+        log.info('Structured call failed, retrying', {
+          attempt,
+          maxAttempts: RETRY_MAX_ATTEMPTS,
+          error: error instanceof Error ? error.message : String(error),
+        });
         await delay(RETRY_DELAY_MS);
       }
     }
