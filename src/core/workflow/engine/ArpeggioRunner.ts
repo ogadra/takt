@@ -19,7 +19,7 @@ import type { RunAgentOptions } from '../../../agents/runner.js';
 import { executeAgent } from '../../../agents/agent-usecases.js';
 import { detectMatchedRule } from '../evaluation/index.js';
 import { incrementStepIteration } from './state-manager.js';
-import { createLogger } from '../../../shared/utils/index.js';
+import { createLogger, delay } from '../../../shared/utils/index.js';
 import type { OptionsBuilder } from './OptionsBuilder.js';
 import type { StepExecutor } from './StepExecutor.js';
 import type { PhaseName, PhasePromptParts } from '../types.js';
@@ -152,10 +152,6 @@ async function executeBatchWithRetry(
     success: false,
     error: lastError,
   };
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildArpeggioPrompt(

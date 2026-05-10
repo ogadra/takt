@@ -22,6 +22,7 @@ import {
   resolveStructuredStep,
 } from './shared.js';
 import { parseParts } from '../../core/workflow/engine/task-decomposer.js';
+import { delay } from '../../shared/utils/index.js';
 
 export class PromptBasedStructuredCaller implements StructuredCaller {
   async judgeStatus(
@@ -231,10 +232,6 @@ export class PromptBasedStructuredCaller implements StructuredCaller {
 
 const RETRY_MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function withRetry<T>(runOnce: () => Promise<T>): Promise<T> {
   let lastError: unknown;
