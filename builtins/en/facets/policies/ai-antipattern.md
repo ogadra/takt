@@ -144,14 +144,35 @@ AI tends to over-deliver. Check for unnecessary additions.
 | Premature abstraction | Interfaces/abstractions for single implementations |
 | Over-configuration | Making things configurable that don't need to be |
 | Gold-plating | "Nice-to-have" additions not asked for |
+| Extra changes disguised as related work | Cleanup, renames, or moves justified only because they are near the edited code |
 | Incidental observable contract changes | Changing values observed by users or tests without being asked |
 | Unnecessary legacy support | Adding mapping/normalization logic for old values without explicit instruction |
 
 The best code is the minimum code that solves the problem.
 
+### Extra Changes Disguised as Related Work
+
+AI often justifies unnecessary cleanup as related work because it is "in the touched file", "near the same responsibility", or "more idiomatic". Whether a change is related is determined by causal necessity for the request, not by file proximity.
+
+| Pattern | Verdict |
+|---------|---------|
+| Renaming, moving, or responsibility changes justified only because the file was touched | REJECT |
+| Changing Props type names, return shapes, or public function names without direct implementation need | REJECT |
+| Deleting existing comments after assuming they are merely explanatory | REJECT |
+| Removing or weakening tested existing behavior just to make tests pass | REJECT |
+| Mixing framework-style improvements without explicit request | REJECT |
+| Adding parameters or updating call sites required to wire the new feature | OK |
+| Deleting old implementation that is genuinely no longer used | OK |
+
+Verification approach:
+1. List renames, moves, deletions, responsibility changes, and test expectation changes in the diff
+2. For each change, ask whether the request fails without it
+3. Do not accept "more readable", "more idiomatic", or "cleanup while here" as necessity
+4. Revert changes whose necessity cannot be explained before completing the task
+
 ### Incidental Observable Contract Changes
 
-AI often changes existing contracts under the banner of "improvement", "standardization", or "clarity" even when the task does not require it. UI copy, accessible names, event names, return values, error messages, log formats, public APIs, and behavior asserted by tests are observable contracts.
+AI often changes existing contracts under the banner of "improvement", "standardization", or "clarity" even when the task does not require it. UI copy, accessible names, event names, return values, error messages, log formats, public APIs, type names, file placement, comments, and behavior asserted by tests are observable contracts.
 
 | Pattern | Verdict |
 |---------|---------|
