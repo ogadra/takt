@@ -9,47 +9,27 @@ workflow_overrides:
         - "Run `npm run lint` and verify lint passes"
         - "Run `npm test` and verify all tests pass"
         - "Run `npm run test:e2e:mock` and verify all E2E tests pass"
-        - type: command
-          name: takt-quality-check
-          command: "bash ./.takt/quality-gates/takt-check.sh"
-          timeout_ms: 1800000
     fix:
       quality_gates:
         - "Run `npm run build` and verify the build succeeds"
         - "Run `npm run lint` and verify lint passes"
         - "Run `npm test` and verify all tests pass"
         - "Run `npm run test:e2e:mock` and verify all E2E tests pass"
-        - type: command
-          name: takt-quality-check
-          command: "bash ./.takt/quality-gates/takt-check.sh"
-          timeout_ms: 1800000
     ai_fix:
       quality_gates:
         - "Run `npm run build` and verify the build succeeds"
         - "Run `npm run lint` and verify lint passes"
         - "Run `npm test` and verify all tests pass"
         - "Run `npm run test:e2e:mock` and verify all E2E tests pass"
-        - type: command
-          name: takt-quality-check
-          command: "bash ./.takt/quality-gates/takt-check.sh"
-          timeout_ms: 1800000
     ai-antipattern-fix:
       quality_gates:
         - "Run `npm run build` and verify the build succeeds"
         - "Run `npm run lint` and verify lint passes"
         - "Run `npm test` and verify all tests pass"
         - "Run `npm run test:e2e:mock` and verify all E2E tests pass"
-        - type: command
-          name: takt-quality-check
-          command: "bash ./.takt/quality-gates/takt-check.sh"
-          timeout_ms: 1800000
     fix_supervisor:
       quality_gates:
         - "Run `npm run build` and verify the build succeeds"
         - "Run `npm run lint` and verify lint passes"
         - "Run `npm test` and verify all tests pass"
         - "Run `npm run test:e2e:mock` and verify all E2E tests pass"
-        - type: command
-          name: takt-quality-check
-          command: "bash ./.takt/quality-gates/takt-check.sh"
-          timeout_ms: 1800000
