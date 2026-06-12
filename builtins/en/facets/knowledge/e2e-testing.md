@@ -17,6 +17,17 @@ E2E tests verify the entire user operation flow. Their scope differs from unit a
 | Scenarios spanning multiple commands/pages | E2E test is appropriate |
 | Error message display verification | E2E test is appropriate |
 
+## Behavior Observation
+
+E2E tests observe behavior visible to the user. Checking configuration values, logs, or snapshots alone does not prove that rejection, permission, isolation, or recovery actually occurred.
+
+| Criteria | Judgment |
+|----------|----------|
+| Results from user actions or external inputs are observed | OK |
+| Rejection, error, and recovery paths verify the expected result | OK |
+| Only configuration or internal state is checked, with no user-visible result | REJECT |
+| Only real external-environment verification exists, with no deterministic test for the main boundary | Warning or REJECT |
+
 ## UX Route Identification
 
 E2E test completeness depends on thorough UX route identification. Identify entry points from code, not documentation.
@@ -86,4 +97,3 @@ Manage test cases as a list to guarantee E2E test completeness.
 | Classify by entry point | Group by command/page/endpoint |
 | Prioritize | Determine priority by user impact × untested risk |
 | Cross-reference with existing tests | Check existing test coverage before adding new tests |
-

@@ -11,6 +11,7 @@ Define the shared judgment criteria and behavioral principles for all reviewers.
 | Fact-check | Verify against actual code before raising issues. Do not speculate |
 | Practical fixes | Propose implementable solutions, not theoretical ideals |
 | State consistency | For side effects and state changes, verify that success, failure, and interruption paths have no missing, duplicated, or inconsistent effects |
+| Behavior evidence | Verify what behavior the tests or logs prove, not merely that they exist |
 | Boy Scout | Have problems fixed within the task scope when they are in changed code or in areas directly affecting correctness, contracts, or wiring of the change |
 
 ## Scope Determination
@@ -32,6 +33,7 @@ Define the shared judgment criteria and behavioral principles for all reviewers.
 REJECT without exception if any of the following apply.
 
 - New behavior without tests
+- Boundary changes (permissions, rejection paths, external execution, shared state, state transitions) without verification of the main allow/deny, success/failure, isolation/release behavior
 - Bug fix without a regression test
 - Use of `any` type
 - Fallback value abuse (`?? 'unknown'`)
@@ -70,6 +72,17 @@ Not blocking, but improvement is recommended.
 ### APPROVE
 
 Approve when all REJECT criteria are cleared and quality standards are met. Never give conditional approval. If there are problems, reject.
+
+## Judging Behavior Evidence
+
+Checks that only inspect configuration values, logs, snapshots, or the last observed state are supplementary evidence. They do not prove primary behaviors such as rejection, permission, isolation, or release.
+
+| Evidence | Judgment |
+|----------|----------|
+| Expected behavior is observed in execution results | OK |
+| Deterministic tests cover the main boundary conditions | OK |
+| Only external-environment E2E exists, with no reproducible verification of the main boundary | Warning or REJECT |
+| Behavior is approved from configuration values, logs, or snapshots only | REJECT |
 
 ## Fact-Checking
 
