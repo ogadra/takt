@@ -107,6 +107,23 @@ takt --task "Add authentication" --workflow dual
 
 **Note:** Passing a string as an argument (e.g., `takt "Add login feature"`) enters interactive mode with it as the initial message.
 
+## ACP Agent
+
+`takt-acp` starts TAKT as an Agent Client Protocol agent over stdio JSON-RPC.
+Launch it from an ACP-compatible client as the agent command:
+
+```bash
+takt-acp
+```
+
+The ACP session `cwd` must be an absolute path. TAKT uses that directory as both the conversation base and workflow project root. By default, `session/prompt` is an enqueue-first conversation entrypoint: prompts such as "enqueue this task" or "make it a pending task" add a pending task to `.takt/tasks.yaml` with `worktree: true`, and the task can later be executed with `takt run`. Direct workflow execution is kept only for explicit requests such as "run it now" or "execute now"; ambiguous prompts stay in the conversation. The main ACP UX does not depend on `/go` or `/play`: `/go` follows the session `defaultAction` and is enqueued by default, while `/play <task>` remains a compatibility-only explicit direct execution command.
+
+If an ACP prompt creates or directly executes a task, TAKT uses the `default` workflow unless the conversation result explicitly provides another workflow.
+
+`session/new` may omit `mcpServers`; omitted or empty `mcpServers: []` is treated as no MCP servers. Stdio MCP servers are passed to workflow execution, but TAKT fails fast before the run when the effective provider for a step does not support MCP servers. Non-stdio MCP transports, duplicate MCP server names, and duplicate trimmed MCP env names are rejected during session creation.
+
+TAKT currently supports `initialize`, `session/new`, `session/prompt`, `session/cancel`, and `session/update` notifications. `additionalDirectories` is not advertised and non-empty `additionalDirectories` requests are rejected.
+
 ## Instant Exec Mode
 
 `takt exec` starts TAKT's interactive task-entry mode without writing workflow YAML by hand. The Assistant agent clarifies the request, `/go` turns the conversation into a generated workflow, Worker agent(s) implement the task, Review agent(s) review the result, the Replanning agent asks the user for direction when needed, and loop detection prevents repeated unproductive cycles.
